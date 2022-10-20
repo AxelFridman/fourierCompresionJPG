@@ -74,6 +74,15 @@ begin
 	print(código_ycbcr.cr)
 end
 
+# ╔═╡ ae8cadbd-7ef7-4a2c-9f6e-2dedf8c79026
+begin
+	#RGB(0.2,0.8,0.9)
+	A = YCbCr(RGB(0.2,0.8,0.9))
+end
+
+# ╔═╡ 80477d11-0759-4043-892c-4fba4a07ef3e
+RGB(A).b
+
 # ╔═╡ 373dc480-9a64-4f94-b42d-0145427f95f8
 md"""### El algoritmo
 
@@ -153,9 +162,65 @@ Implementar también el proceso inverso que consiste en, dadas tres matrices com
 
 # ╔═╡ 41bf4d45-04ca-453e-829b-08a4d699f0c8
 # etapa 1
+function descomposicionYCbCr(imagen)
+		alto = length(imagen[:,1,1])
+		ancho = length(imagen[1,:,1])
+
+		brillo = zeros(alto, ancho)
+		imCb = zeros(Int(alto/2), Int(ancho/2))
+		imCr = zeros(Int(alto/2), Int(ancho/2))
+		for i in 1:alto
+			for j in 1:ancho
+				código_ycbcr = YCbCr(imagen[i,j])	
+				brillo[i,j] = código_ycbcr.y
+			end
+		end
+		for i in 1:Int(alto/2)-1
+			for j in 1:Int(ancho/2)-1
+				izqarr= YCbCr(imagen[2*i,2*j])
+				derarr= YCbCr(imagen[2*i,2*j+1])
+				izqaba= YCbCr(imagen[2*i+1,2*j])
+				deraba= YCbCr(imagen[2*i+1,2*j+1])
+			
+				imCb[i,j] = (izqarr.cb+derarr.cb+izqaba.cb+deraba.cb)/4
+				imCr[i,j] = (izqarr.cr+derarr.cr+izqaba.cr+deraba.cr)/4
+			end
+		end
+		imCb = imCb .- 128
+		imCr = imCr .- 128
+		return brillo, imCb, imCr
+	end
+
+# ╔═╡ 5f794d76-2530-4c60-a670-894e86fc0ed8
+descompuesta = descomposicionYCbCr(imgamp)
 
 # ╔═╡ 90365b61-b2d7-4a4f-b529-f3cdac94a795
 # inversa de etapa 1
+function recomposicionRGB(brillo, cb, cr)
+		alto = length(brillo[:,1,1])
+		ancho = length(brillo[1,:,1])
+		
+		imagen = RGB.(zeros(alto, ancho))
+		cb = cb .+ 128
+		cr = cr .+ 128
+		for i in 1:alto-1
+			for j in 1:ancho-1
+				luz = brillo[i,j]
+				cbpix = cb[Int(floor(i/2)+1),Int(floor(j/2)+1)]
+				crpix = cr[Int(floor(i/2)+1),Int(floor(j/2)+1)]
+				
+				código_rgb = RGB(YCbCr(luz, cbpix, crpix))
+				imagen[i,j] = código_rgb
+			end
+		end
+		return imagen
+	end
+
+# ╔═╡ 99d400ec-0b81-4a26-b21b-c45f1671e40f
+recomposicionRGB(descompuesta[1], descompuesta[2],descompuesta[3] )
+
+# ╔═╡ 2761a1c6-e56f-4676-a7ea-f66054a5c7f7
+
 
 # ╔═╡ debe5314-fd82-4af3-b1f7-73772025016b
 md"""#### Transformada por bloques
@@ -1210,6 +1275,8 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═2d21bfbd-c286-4da9-919f-c3406eb773b8
 # ╟─ffe2070f-6c2b-4469-ab87-bf9204688f9a
 # ╠═9e42d8f6-58c3-4414-8d0b-3745f8e42c34
+# ╠═ae8cadbd-7ef7-4a2c-9f6e-2dedf8c79026
+# ╠═80477d11-0759-4043-892c-4fba4a07ef3e
 # ╟─373dc480-9a64-4f94-b42d-0145427f95f8
 # ╠═d8af8572-a4fe-4553-8801-2bf68c299076
 # ╟─e963606c-b88e-4bca-bcbb-7d4e7269aa56
@@ -1222,7 +1289,10 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═c2c7bcb5-1a43-4608-9eef-2fe235536b5d
 # ╟─e8feb188-8f86-429d-a301-5a8097aa4121
 # ╠═41bf4d45-04ca-453e-829b-08a4d699f0c8
+# ╠═5f794d76-2530-4c60-a670-894e86fc0ed8
 # ╠═90365b61-b2d7-4a4f-b529-f3cdac94a795
+# ╠═99d400ec-0b81-4a26-b21b-c45f1671e40f
+# ╠═2761a1c6-e56f-4676-a7ea-f66054a5c7f7
 # ╟─debe5314-fd82-4af3-b1f7-73772025016b
 # ╠═56169522-8fab-454b-a167-551e03d91228
 # ╠═71b25a7b-1c7f-4772-82d9-168520fb917d
