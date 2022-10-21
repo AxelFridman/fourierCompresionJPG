@@ -32,6 +32,9 @@ Los elementos básicos para operar con imágenes están en la librería `Images`
 # ╔═╡ 1869c3d3-f224-485c-a164-da485f1a02d3
 im = load("Meisje_met_de_parel.jpg")
 
+# ╔═╡ 9e6e8d4e-684e-4e75-beb4-15cf55a889a0
+imping = load("pinguino.bmp")
+
 # ╔═╡ 4b2191fb-f952-423f-8321-201e1c35ef6e
 md"""La imagen se carga esencialmente como una matriz que en cada casillero tiene un elemento de tipo `RGB`:"""
 
@@ -139,6 +142,9 @@ ancho = length(im[1,:,1])
 imgamp = rellenarImagen(im)
 
 
+# ╔═╡ 37012fb7-a9c1-4c42-a732-41b00bae0eaf
+imgpingamp = rellenarImagen(imping)
+
 # ╔═╡ 10d51d37-62c6-43b5-9a82-21e591b60e9f
 altonu = length(imgamp[:,1,1])
 
@@ -192,7 +198,10 @@ function descomposicionYCbCr(imagen)
 	end
 
 # ╔═╡ 5f794d76-2530-4c60-a670-894e86fc0ed8
-descompuesta = descomposicionYCbCr(imgamp)
+begin
+	descompuesta = descomposicionYCbCr(imgamp)
+	descompuestaPing = descomposicionYCbCr(imgpingamp)
+end
 
 # ╔═╡ 90365b61-b2d7-4a4f-b529-f3cdac94a795
 # inversa de etapa 1
@@ -220,7 +229,7 @@ function recomposicionRGB(brillo, cb, cr)
 recomposicionRGB(descompuesta[1], descompuesta[2],descompuesta[3] )
 
 # ╔═╡ 2761a1c6-e56f-4676-a7ea-f66054a5c7f7
-
+recomposicionRGB(descompuestaPing[1], descompuestaPing[2], descompuestaPing[3])
 
 # ╔═╡ debe5314-fd82-4af3-b1f7-73772025016b
 md"""#### Transformada por bloques
@@ -231,6 +240,22 @@ Implementar esta función y su inversa, que debe aplicar `idct` (o `idct!`) por 
 
 # ╔═╡ 56169522-8fab-454b-a167-551e03d91228
 # transformada
+function agruparPorBloques(matrix)
+	alto  = length(matrix[:,1])
+	ancho = length(matrix[1,:])
+	vect  = []	
+	for i in 1:8:ancho
+		#print(i)
+		for j in 1:8:alto
+			print(j)
+			for k in 0:1:7
+				#print(k)
+			vect = vcat(vect, matrix[i+k,j:j+7]) 
+			end
+		end
+	end
+	return vect
+end
 
 # ╔═╡ 71b25a7b-1c7f-4772-82d9-168520fb917d
 # inversa
@@ -1266,7 +1291,8 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╟─a7559a22-4b4b-11ed-24f3-235b55e22f28
 # ╟─c979346b-cecc-4cf3-9aa6-d1d9133ab2fc
 # ╟─d7c86dc8-2a7c-4a23-8f12-8b6a17b43524
-# ╟─1869c3d3-f224-485c-a164-da485f1a02d3
+# ╠═1869c3d3-f224-485c-a164-da485f1a02d3
+# ╟─9e6e8d4e-684e-4e75-beb4-15cf55a889a0
 # ╟─4b2191fb-f952-423f-8321-201e1c35ef6e
 # ╠═554b169a-d7f9-4835-901d-0715facb38a0
 # ╟─f96dbd2e-de85-4855-9cfd-9f74263190e8
@@ -1284,6 +1310,7 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═d1187154-b075-4743-8a4e-570ce37c6f66
 # ╠═eb09da2b-cdfb-4fca-8bae-e154a008d974
 # ╠═93debb01-597c-4c88-adf4-9394e7664742
+# ╟─37012fb7-a9c1-4c42-a732-41b00bae0eaf
 # ╠═10d51d37-62c6-43b5-9a82-21e591b60e9f
 # ╠═412eda17-2710-4728-b38b-fb86a8a43c48
 # ╠═c2c7bcb5-1a43-4608-9eef-2fe235536b5d
