@@ -35,6 +35,9 @@ im = load("Meisje_met_de_parel.jpg")
 # ╔═╡ 9e6e8d4e-684e-4e75-beb4-15cf55a889a0
 imping = load("pinguino.bmp")
 
+# ╔═╡ 5ff81afa-eea2-4ccd-a5f6-5a81025aac46
+impmandel = load("mandel.bmp")
+
 # ╔═╡ 4b2191fb-f952-423f-8321-201e1c35ef6e
 md"""La imagen se carga esencialmente como una matriz que en cada casillero tiene un elemento de tipo `RGB`:"""
 
@@ -58,8 +61,12 @@ md"""Como la imagen es esencialmente una matriz, podemos modificarla como modifi
 begin 
 	im_adulterada = copy(im)
 	im_adulterada[700:800,200:400] .= RGB(0.2,0.8,0.9)
+	
 	im_adulterada
 end
+
+# ╔═╡ 16835729-56db-4f74-886b-8b878c121407
+
 
 # ╔═╡ ffe2070f-6c2b-4469-ab87-bf9204688f9a
 md"""Existen otras codificaciones de color. A nosotros nos va a interesar la codificación `YCbCr` que está formada por una componente de luminosidad (`Y`) y dos de color (`Cb` y `Cr`). Para convertir un elemento de tipo `RGB` al formato `YCbCr` basta aplicarle `YCbCr()`:"""
@@ -145,6 +152,9 @@ imgamp = rellenarImagen(im)
 # ╔═╡ 37012fb7-a9c1-4c42-a732-41b00bae0eaf
 imgpingamp = rellenarImagen(imping)
 
+# ╔═╡ 36e56fba-a298-4e1f-bfc6-9699ea77f8e0
+imgmandamp = rellenarImagen(impmandel)
+
 # ╔═╡ 10d51d37-62c6-43b5-9a82-21e591b60e9f
 altonu = length(imgamp[:,1,1])
 
@@ -181,13 +191,24 @@ function descomposicionYCbCr(imagen)
 				brillo[i,j] = código_ycbcr.y
 			end
 		end
-		for i in 1:Int(alto/2)-1
-			for j in 1:Int(ancho/2)-1
+		for i in 1:Int(alto/2)
+			for j in 1:Int(ancho/2)
 				izqarr= YCbCr(imagen[2*i,2*j])
-				derarr= YCbCr(imagen[2*i,2*j+1])
-				izqaba= YCbCr(imagen[2*i+1,2*j])
-				deraba= YCbCr(imagen[2*i+1,2*j+1])
-			
+				if 2*j<ancho
+					derarr= YCbCr(imagen[2*i,2*j+1])
+				else
+					derarr = YCbCr(imagen[2*i,2*j])
+				end
+				if 2*i<alto
+					izqaba= YCbCr(imagen[2*i+1,2*j])
+				else
+					izqaba = YCbCr(imagen[2*i,2*j])
+				end
+				if 2*j<ancho & 2*i<alto
+					deraba= YCbCr(imagen[2*i+1,2*j+1])
+				else
+					deraba= YCbCr(imagen[2*i,2*j])
+				end
 				imCb[i,j] = (izqarr.cb+derarr.cb+izqaba.cb+deraba.cb)/4
 				imCr[i,j] = (izqarr.cr+derarr.cr+izqaba.cr+deraba.cr)/4
 			end
@@ -201,22 +222,24 @@ function descomposicionYCbCr(imagen)
 begin
 	descompuesta = descomposicionYCbCr(imgamp)
 	descompuestaPing = descomposicionYCbCr(imgpingamp)
+	descompuestaMand = descomposicionYCbCr(imgmandamp)
 end
 
 # ╔═╡ 90365b61-b2d7-4a4f-b529-f3cdac94a795
 # inversa de etapa 1
-function recomposicionRGB(brillo, cb, cr)
+function recomposicionRGB(tuplaMat)
+		brillo, cb, cr = tuplaMat
 		alto = length(brillo[:,1,1])
 		ancho = length(brillo[1,:,1])
 		
 		imagen = RGB.(zeros(alto, ancho))
 		cb = cb .+ 128
 		cr = cr .+ 128
-		for i in 1:alto-1
-			for j in 1:ancho-1
+		for i in 1:alto
+			for j in 1:ancho
 				luz = brillo[i,j]
-				cbpix = cb[Int(floor(i/2)+1),Int(floor(j/2)+1)]
-				crpix = cr[Int(floor(i/2)+1),Int(floor(j/2)+1)]
+				cbpix = cb[max(Int(floor(i/2)),1),max(Int(floor(j/2)),1)]
+				crpix = cr[max(1,Int(floor(i/2))),max(1,Int(floor(j/2)))]
 				
 				código_rgb = RGB(YCbCr(luz, cbpix, crpix))
 				imagen[i,j] = código_rgb
@@ -226,10 +249,13 @@ function recomposicionRGB(brillo, cb, cr)
 	end
 
 # ╔═╡ 99d400ec-0b81-4a26-b21b-c45f1671e40f
-recomposicionRGB(descompuesta[1], descompuesta[2],descompuesta[3] )
+recomposicionRGB(descompuesta)
 
 # ╔═╡ 2761a1c6-e56f-4676-a7ea-f66054a5c7f7
-recomposicionRGB(descompuestaPing[1], descompuestaPing[2], descompuestaPing[3])
+recomposicionRGB(descompuestaPing)
+
+# ╔═╡ d981fd7d-1455-47c8-9f82-325f70f9dcc7
+recomposicionRGB(descompuestaMand)
 
 # ╔═╡ debe5314-fd82-4af3-b1f7-73772025016b
 md"""#### Transformada por bloques
@@ -239,26 +265,61 @@ El siguiente paso consiste en pensar a cada matriz como una agrupación de bloqu
 Implementar esta función y su inversa, que debe aplicar `idct` (o `idct!`) por bloques."""  
 
 # ╔═╡ 56169522-8fab-454b-a167-551e03d91228
-# transformada
-function agruparPorBloques(matrix)
-	alto  = length(matrix[:,1])
-	ancho = length(matrix[1,:])
-	vect  = []	
+function transformarMatriz(matrix)
+	alto  = length(matrix[1,:])
+	ancho = length(matrix[:,1])
+	matrizcopia = copy(matrix)
 	for i in 1:8:ancho
-		#print(i)
 		for j in 1:8:alto
-			print(j)
-			for k in 0:1:7
-				#print(k)
-			vect = vcat(vect, matrix[i+k,j:j+7]) 
+			matrizcopia[i:i+7,j:j+7]  = dct(matrizcopia[i:i+7,j:j+7])
 			end
 		end
-	end
-	return vect
+	return matrizcopia
+end
+
+
+# ╔═╡ 89a20ba2-2867-439e-a1cb-f9d4ec74fe05
+function transformarImagen(tuplaMatrices)
+	mat1trans = transformarMatriz(tuplaMatrices[1])
+	mat2trans = transformarMatriz(tuplaMatrices[2])
+	mat3trans = transformarMatriz(tuplaMatrices[3])
+	return(mat1trans, mat2trans, mat3trans)
 end
 
 # ╔═╡ 71b25a7b-1c7f-4772-82d9-168520fb917d
 # inversa
+function antitransformarMatriz(matrix)
+	alto  = length(matrix[1,:])
+	ancho = length(matrix[:,1])
+	matrizcopia = copy(matrix)
+	for i in 1:8:ancho
+		for j in 1:8:alto
+			matrizcopia[i:i+7,j:j+7]  = idct(matrizcopia[i:i+7,j:j+7])
+			end
+		end
+	return matrizcopia
+end
+
+
+# ╔═╡ 41fef68a-63ff-47d5-b909-f279dc65bb10
+function AntitransformarImagen(tuplaMatrices)
+	mat1trans = antitransformarMatriz(tuplaMatrices[1])
+	mat2trans = antitransformarMatriz(tuplaMatrices[2])
+	mat3trans = antitransformarMatriz(tuplaMatrices[3])
+	return(mat1trans, mat2trans, mat3trans)
+end
+
+# ╔═╡ be3adadd-828c-4a6f-bd01-272a3d1b3599
+transformadaPinguino = transformarImagen(descompuestaPing)
+
+# ╔═╡ 0f6327b8-4b0e-4cb9-bfce-e6dc419c53a5
+antitransPinguino =  AntitransformarImagen(transformadaPinguino)
+
+# ╔═╡ e3c9f0cb-7f1b-45e1-90c9-103830b81aab
+recomposicionRGB(antitransPinguino)
+
+# ╔═╡ 572167ef-2fa0-4354-843d-0d9e92c42f00
+recomposicionRGB(transformadaPinguino)
 
 # ╔═╡ 61d8b3f0-d67d-4278-b19e-3e33686e8c45
 md"""#### Cuantización
@@ -303,9 +364,60 @@ Implementar también el proceso inverso, que consiste en multiplicar por la matr
 
 # ╔═╡ a7c04406-82b0-488d-9b4e-ada252579ab5
 # cuantización
+function quantizacion(tuplaMatrices, quantMatriz)
+	matrizcopia1 = copy(tuplaMatrices[1])
+	matrizcopia2 = copy(tuplaMatrices[2])
+	matrizcopia3 = copy(tuplaMatrices[3])
+	copiasMat = (matrizcopia1,matrizcopia2,matrizcopia3) 
+	for matrizIesima in 1:3
+		alto  = length(tuplaMatrices[matrizIesima][1,:])
+		ancho = length(tuplaMatrices[matrizIesima][:,1])
+		for i in 1:8:ancho
+			for j in 1:8:alto
+				bloque = copiasMat[matrizIesima][i:i+7,j:j+7]
+				bloque_cuant = Int.(round.(bloque./quantMatriz))
+				copiasMat[matrizIesima][i:i+7,j:j+7]  = bloque_cuant
+			end
+		end
+	end
+	return copiasMat
+end
 
 # ╔═╡ 615a9812-f192-443d-9bd1-c2b7a625e7ed
 # inv-cuantización
+function invquantizacion(tuplaMatrices, quantMatriz)
+	matrizcopia1 = copy(tuplaMatrices[1])
+	matrizcopia2 = copy(tuplaMatrices[2])
+	matrizcopia3 = copy(tuplaMatrices[3])
+	copiasMat = (matrizcopia1,matrizcopia2,matrizcopia3) 
+	for matrizIesima in 1:3
+		alto  = length(tuplaMatrices[matrizIesima][1,:])
+		ancho = length(tuplaMatrices[matrizIesima][:,1])
+		for i in 1:8:ancho
+			for j in 1:8:alto
+				bloque = copiasMat[matrizIesima][i:i+7,j:j+7]
+				bloque_cuant = Int.(round.(bloque.*quantMatriz))
+				copiasMat[matrizIesima][i:i+7,j:j+7]  = bloque_cuant
+			end
+		end
+	end
+	return copiasMat
+end
+
+# ╔═╡ 1e38093f-717f-474f-8e3c-cf2bac18099c
+assd = quantizacion(descompuesta, quant)
+
+# ╔═╡ b4882722-099e-43d5-86b7-39da98f1c12f
+invs = invquantizacion(assd, quant)
+
+# ╔═╡ 79d9b448-1220-48da-b314-53c005869351
+recomposicionRGB(assd)
+
+# ╔═╡ e687ca73-1546-4c1b-b0ff-04ed86fc299d
+recomposicionRGB(invs)
+
+# ╔═╡ e9d33e31-aace-47f3-bda6-7e422f4a507d
+recomposicionRGB(descompuesta)
 
 # ╔═╡ 4a893d28-4023-4c51-a1b9-47c812097da7
 md"""Observar que al aplicar la cuantización y su inversa el resultado es que se convierten en 0 muchos de los valores, pero los otros se preservan aproximadamente iguales (salvo error de redondeo)."""
@@ -334,6 +446,90 @@ Observar que de esta manera tendremos que casi siempre la cola del vector está 
 # ╔═╡ 89ba95b9-6c06-4732-9b38-94448595d51d
 mat_ejemplo = reshape(1:64,8,8)
 
+# ╔═╡ 5af7c99f-906d-4642-b060-a53856bdb5cb
+function damediag(mat, ndiag)
+	if ndiag<=8
+		i = ndiag
+		j = 1
+	else
+		i = 8
+		j = ndiag-8
+	end
+	vec = []
+	while(i>=1 && j<= length(mat[1,:]) && j>=1 && i<= length(mat[1,:]))#& j>=1 & i<= 
+		push!(vec, mat[j, i])
+		j = j + 1
+		i = i -1
+	end
+	return vec
+end
+
+# ╔═╡ 68a5bf30-ca28-4ca3-ba60-6b031124f0fa
+function ponerdiag(mat, ndiag, vec)
+	mat2 = copy(mat)
+	if ndiag<=8
+		i = ndiag
+		j = 1
+	else
+		i = 8
+		j = ndiag-8
+	end
+	for h in 1:length(vec)
+		mat2[j, i] = vec[h]
+		j = j + 1
+		i = i -1
+	end
+	return mat2
+end
+
+# ╔═╡ 960e9ddf-9ca6-4bdf-8356-23bb05217b23
+ponerdiag(mat_ejemplo, 5, [-100, 99,77,66,55])
+
+# ╔═╡ a716593f-9050-47ce-a8c7-93c82b5e6dd4
+function generarVectorzigzag(mat)
+	vectotal = []
+	for i in 1:16
+		vec1 = damediag(mat,i)
+		if(i<8)
+			if(i%2==1)
+				vectotal = vcat(vectotal, reverse(vec1))
+			else
+				vectotal = vcat(vectotal, vec1)
+			end
+		else
+			if(i%2==0)
+				vectotal = vcat(vectotal, reverse(vec1))
+			else
+				vectotal = vcat(vectotal, vec1)
+			end
+		end
+	end
+	
+	return (vectotal)
+end
+
+# ╔═╡ d2d7fb19-f3c6-4c82-b662-a32b5d9fe11d
+vmat = generarVectorzigzag(mat_ejemplo)
+
+# ╔═╡ f270e723-ead0-4d04-8455-5cd2bf17b9c3
+function generarMatrizDesdeVectorZigZag(vectorazo)
+	longitudes = [1,2,3,4,5,6,7,8,7,6,5,4,3,2,1]
+	mat = zeros(8,8)
+	actual = 1
+	for h in 1:length(longitudes)
+		diag = vectorazo[actual:actual + longitudes[h]-1]
+		actual = actual + longitudes[h]
+		print(diag)
+		print()
+	end
+end
+
+# ╔═╡ 29d2d8f7-3b4f-4817-9cb6-95186a4da0da
+generarMatrizDesdeVectorZigZag(vmat)
+
+# ╔═╡ 0362c20f-fa97-42eb-b0af-1e2332ee42c5
+vmat[2:3]
+
 # ╔═╡ cdeabb5f-9c87-4346-ab38-c86f408189bc
 md"""El orden de lectura debería ser: 
 	1,9,2,3,10,17,25,18,11,4,...,48,55,62,63,56,64
@@ -356,7 +552,10 @@ end
 md"""También existe la inversa:"""
 
 # ╔═╡ f03504e3-9862-4a2e-8525-9b2df88dfcd3
-inverse_rle(reps,vals)
+inverse_rle(vals,reps)
+
+# ╔═╡ 8554d36c-5975-42cb-b8cb-56741097d071
+
 
 # ╔═╡ 66e99f7f-3d1b-4fdc-ac24-4d30c535d654
 md"""Por último, haremos un largo vector en el que almacenaremos todos estos números. Observar que tendremos un par de vectores (repeticiones y valores) por cada bloque de cada matriz. Podemos generar un vector de vectores de la forma `[reps₁,vals₁,reps₂,vals₂,...]`, o directamente poner todos los números en una sola tira. En el siguiente paso grabaremos esto en un archivo, y allí no habrá vectores sino sólo una larga tira de números. 
@@ -370,6 +569,22 @@ Implementar también su inversa que debe tomar la larga tira de datos y separarl
 
 # ╔═╡ 6ac98964-92e0-4cf3-a004-51194f17ee73
 # compresion
+# compresion
+# Recibe una matriz y a su submatrices de 8x8 las
+#### DUDOSO!!!!! ######
+function compresion(matrix)
+alto  = length(matrix[1,:])
+ancho = length(matrix[:,1])
+res = []
+for i in 1:8:ancho
+for j in 1:8:alto
+vals,reps = rle(generarVectorzigzag(matrix[i:i+7,j:j+7]))
+push!(res,reps)
+push!(res,vals)
+end
+end
+return res
+end
 
 # ╔═╡ 2e59ff10-e8a5-489a-8a36-8da42d837630
 # inversa
@@ -1292,13 +1507,15 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╟─c979346b-cecc-4cf3-9aa6-d1d9133ab2fc
 # ╟─d7c86dc8-2a7c-4a23-8f12-8b6a17b43524
 # ╠═1869c3d3-f224-485c-a164-da485f1a02d3
-# ╟─9e6e8d4e-684e-4e75-beb4-15cf55a889a0
+# ╠═9e6e8d4e-684e-4e75-beb4-15cf55a889a0
+# ╠═5ff81afa-eea2-4ccd-a5f6-5a81025aac46
 # ╟─4b2191fb-f952-423f-8321-201e1c35ef6e
 # ╠═554b169a-d7f9-4835-901d-0715facb38a0
 # ╟─f96dbd2e-de85-4855-9cfd-9f74263190e8
 # ╠═71bceaf2-f149-49b0-bc9f-9a31db44219f
 # ╟─7129eaff-a7d2-46c7-9bc7-ca12bfe733c8
 # ╠═2d21bfbd-c286-4da9-919f-c3406eb773b8
+# ╠═16835729-56db-4f74-886b-8b878c121407
 # ╟─ffe2070f-6c2b-4469-ab87-bf9204688f9a
 # ╠═9e42d8f6-58c3-4414-8d0b-3745f8e42c34
 # ╠═ae8cadbd-7ef7-4a2c-9f6e-2dedf8c79026
@@ -1310,7 +1527,8 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═d1187154-b075-4743-8a4e-570ce37c6f66
 # ╠═eb09da2b-cdfb-4fca-8bae-e154a008d974
 # ╠═93debb01-597c-4c88-adf4-9394e7664742
-# ╟─37012fb7-a9c1-4c42-a732-41b00bae0eaf
+# ╠═37012fb7-a9c1-4c42-a732-41b00bae0eaf
+# ╠═36e56fba-a298-4e1f-bfc6-9699ea77f8e0
 # ╠═10d51d37-62c6-43b5-9a82-21e591b60e9f
 # ╠═412eda17-2710-4728-b38b-fb86a8a43c48
 # ╠═c2c7bcb5-1a43-4608-9eef-2fe235536b5d
@@ -1320,11 +1538,18 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═90365b61-b2d7-4a4f-b529-f3cdac94a795
 # ╠═99d400ec-0b81-4a26-b21b-c45f1671e40f
 # ╠═2761a1c6-e56f-4676-a7ea-f66054a5c7f7
+# ╠═d981fd7d-1455-47c8-9f82-325f70f9dcc7
 # ╟─debe5314-fd82-4af3-b1f7-73772025016b
 # ╠═56169522-8fab-454b-a167-551e03d91228
+# ╠═89a20ba2-2867-439e-a1cb-f9d4ec74fe05
 # ╠═71b25a7b-1c7f-4772-82d9-168520fb917d
+# ╠═41fef68a-63ff-47d5-b909-f279dc65bb10
+# ╠═be3adadd-828c-4a6f-bd01-272a3d1b3599
+# ╠═0f6327b8-4b0e-4cb9-bfce-e6dc419c53a5
+# ╠═e3c9f0cb-7f1b-45e1-90c9-103830b81aab
+# ╠═572167ef-2fa0-4354-843d-0d9e92c42f00
 # ╟─61d8b3f0-d67d-4278-b19e-3e33686e8c45
-# ╟─33cc2c7e-b6b5-4ca0-94c3-8f89f3312af4
+# ╠═33cc2c7e-b6b5-4ca0-94c3-8f89f3312af4
 # ╟─49e94ada-2149-4af0-9b32-fbfaa75a74a3
 # ╟─a72a54fe-18d2-44b4-8f77-1d1f0ea8dcb1
 # ╟─60563a9e-628b-4fe4-bedd-2573a33e9f77
@@ -1332,15 +1557,29 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╟─772b05e0-7063-4d31-add5-b1f1905df558
 # ╠═a7c04406-82b0-488d-9b4e-ada252579ab5
 # ╠═615a9812-f192-443d-9bd1-c2b7a625e7ed
+# ╠═1e38093f-717f-474f-8e3c-cf2bac18099c
+# ╠═b4882722-099e-43d5-86b7-39da98f1c12f
+# ╠═79d9b448-1220-48da-b314-53c005869351
+# ╠═e687ca73-1546-4c1b-b0ff-04ed86fc299d
+# ╠═e9d33e31-aace-47f3-bda6-7e422f4a507d
 # ╟─4a893d28-4023-4c51-a1b9-47c812097da7
 # ╟─603cc8ce-2702-46ad-95c3-2931c646958f
 # ╠═89ba95b9-6c06-4732-9b38-94448595d51d
+# ╠═5af7c99f-906d-4642-b060-a53856bdb5cb
+# ╠═68a5bf30-ca28-4ca3-ba60-6b031124f0fa
+# ╠═d2d7fb19-f3c6-4c82-b662-a32b5d9fe11d
+# ╠═960e9ddf-9ca6-4bdf-8356-23bb05217b23
+# ╠═a716593f-9050-47ce-a8c7-93c82b5e6dd4
+# ╠═f270e723-ead0-4d04-8455-5cd2bf17b9c3
+# ╠═29d2d8f7-3b4f-4817-9cb6-95186a4da0da
+# ╠═0362c20f-fa97-42eb-b0af-1e2332ee42c5
 # ╟─cdeabb5f-9c87-4346-ab38-c86f408189bc
 # ╠═5e013596-c983-4486-8853-7607031be4a3
 # ╟─8008b883-3adc-480f-8aff-620382e49603
 # ╠═f1465ba4-4ca8-4d41-a678-cf9f593a6b57
 # ╟─511170ac-e9fa-4136-b5f8-6c08126ad297
 # ╠═f03504e3-9862-4a2e-8525-9b2df88dfcd3
+# ╠═8554d36c-5975-42cb-b8cb-56741097d071
 # ╟─66e99f7f-3d1b-4fdc-ac24-4d30c535d654
 # ╟─2191cb16-01a7-4f7f-9019-413dc5d52cdc
 # ╠═6ac98964-92e0-4cf3-a004-51194f17ee73
