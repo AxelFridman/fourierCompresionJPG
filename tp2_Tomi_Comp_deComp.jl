@@ -7,6 +7,9 @@ using InteractiveUtils
 # ╔═╡ 1572d199-17f8-4ae3-8253-cc27e86f697f
 using Images, FFTW, StatsBase
 
+# ╔═╡ 998fcd81-b3b7-41a5-9130-9614962c4dae
+using Random
+
 # ╔═╡ 35b23d07-f643-49f4-8789-73ddbdeabdfe
 
 
@@ -86,7 +89,7 @@ end
 
 # ╔═╡ ae8cadbd-7ef7-4a2c-9f6e-2dedf8c79026
 begin
-	#RGB(0.2,0.8,0.9)
+	#RGB(0.2,0.8,0.9)a
 	A = YCbCr(RGB(0.2,0.8,0.9))
 end
 
@@ -294,7 +297,7 @@ function antitransformarMatriz(matrix)
 	matrizcopia = copy(matrix)
 	for i in 1:8:ancho
 		for j in 1:8:alto
-			matrizcopia[i:i+7,j:j+7]  = idct(matrizcopia[i:i+7,j:j+7])
+			matrizcopia[i:i+7,j:j+7]  = floor.(0.1 .+ idct(matrizcopia[i:i+7,j:j+7]))
 			end
 		end
 	return matrizcopia
@@ -365,22 +368,22 @@ Implementar también el proceso inverso, que consiste en multiplicar por la matr
 # ╔═╡ a7c04406-82b0-488d-9b4e-ada252579ab5
 # cuantización
 function quantizacion(tuplaMatrices, quantMatriz)
-	matrizcopia1 = copy(tuplaMatrices[1])
-	matrizcopia2 = copy(tuplaMatrices[2])
-	matrizcopia3 = copy(tuplaMatrices[3])
+	matrizcopia1 = zeros(Int, length(tuplaMatrices[1][:,1]), length(tuplaMatrices[1][1,:]))#copy(tuplaMatrices[1])
+	matrizcopia2 = zeros(Int, length(tuplaMatrices[2][:,1]), length(tuplaMatrices[2][1,:]))  #copy(tuplaMatrices[2])
+	matrizcopia3 = zeros(Int, length(tuplaMatrices[3][:,1]), length(tuplaMatrices[3][1,:])) #copy(tuplaMatrices[3])
 	copiasMat = (matrizcopia1,matrizcopia2,matrizcopia3) 
 	for matrizIesima in 1:3
 		alto  = length(tuplaMatrices[matrizIesima][1,:])
 		ancho = length(tuplaMatrices[matrizIesima][:,1])
 		for i in 1:8:ancho
 			for j in 1:8:alto
-				bloque = copiasMat[matrizIesima][i:i+7,j:j+7]
+				bloque = tuplaMatrices[matrizIesima][i:i+7,j:j+7]
 				bloque_cuant = Int.(round.(bloque./quantMatriz))
 				copiasMat[matrizIesima][i:i+7,j:j+7]  = bloque_cuant
 			end
 		end
 	end
-	return copiasMat
+	return (copiasMat)
 end
 
 # ╔═╡ 615a9812-f192-443d-9bd1-c2b7a625e7ed
@@ -401,7 +404,7 @@ function invquantizacion(tuplaMatrices, quantMatriz)
 			end
 		end
 	end
-	return copiasMat
+	return (copiasMat) # HAY QUE ENTERIZARLO
 end
 
 # ╔═╡ 1e38093f-717f-474f-8e3c-cf2bac18099c
@@ -599,10 +602,18 @@ function compresion(matrix)
 	return res, alto, ancho
 end
 
+# ╔═╡ 1fe0ba5e-84da-4b57-8aa6-0d946b1b78ee
+function compresionImagen(tuplaMatrices)
+	resultados1 = compresion(tuplaMatrices[1])
+	resultados2 = compresion(tuplaMatrices[2])
+	resultados3 = compresion(tuplaMatrices[3])
+	return(resultados1,resultados2, resultados3)
+end
+
 # ╔═╡ 2e59ff10-e8a5-489a-8a36-8da42d837630
 # inversa
 function decompresion(vec, alto, ancho)
-	matrix = zeros(alto, ancho)
+	matrix = zeros(Int, alto, ancho)
 	for i in 1:2:Int(length(vec)/2)
 		for j in 1:8:alto
 			for k in 1:8:ancho
@@ -620,13 +631,21 @@ function decompresion(vec, alto, ancho)
 	return matrix
 end
 
+# ╔═╡ 75801208-efa8-4a3e-b70b-4945727c0c48
+function decompresionImagen(tuplaComprimidas)
+	resultados1 = decompresion(tuplaComprimidas[1][1],tuplaComprimidas[1][2],tuplaComprimidas[1][3])
+	resultados2 = decompresion(tuplaComprimidas[2][1],tuplaComprimidas[2][2],tuplaComprimidas[2][3])
+	resultados3 = decompresion(tuplaComprimidas[3][1],tuplaComprimidas[3][2],tuplaComprimidas[3][3])
+	return(resultados1,resultados2, resultados3)
+end
+
 # ╔═╡ 5b4e7d2a-776c-4857-9df8-14876b48e35f
 matTransf
 
 # ╔═╡ 5e680105-b838-4f8b-bdf5-f838f214d9ba
 # Genero matriz de test.
 begin
-	matTest = zeros(16, 16)
+	matTest = zeros(Int, 16, 16)
 	alto_t  = length(matTest[1,:])
 	ancho_t = length(matTest[:,1])
 	res = []
@@ -642,12 +661,42 @@ end
 matTest[:, 1:8]
 
 # ╔═╡ b794726d-71d0-452c-8181-5b889d39291b
-# Testeo
-
-decompresion(compresion(matTest[:, 1:8])[1],16,8)
+begin
+	# Testeo
+	tuplaMat = (matTest,matTest,matTest)
+	comprimida = compresionImagen(tuplaMat)
+	decompresionImagen(comprimida)
+end
 
 # ╔═╡ 4d6d4988-315e-4448-9fb9-0c4bf17e5609
+decompresion(compresion())
 
+# ╔═╡ 272893f3-708f-4a11-a7ad-df9a3e958b01
+comprimidafull = (quantizacion(transformarImagen(descomposicionYCbCr(rellenarImagen(imping))), quant))
+
+# ╔═╡ b056be92-f782-4578-924e-83f5d808ab01
+
+
+# ╔═╡ 5562274e-9718-4fa0-8810-442e7b4770a4
+decomprimidaFull = recomposicionRGB(AntitransformarImagen(invquantizacion((comprimidafull), quant)))
+
+# ╔═╡ d43cf954-aaa6-45a1-8e8f-92bb4cf598f7
+decompresion(compresion(matTest)[1],16,16)
+
+# ╔═╡ b7d53246-0e90-45c6-b641-90d244fe50df
+matTest
+
+# ╔═╡ facc26e8-c08b-419e-8db0-63b57744ae0d
+mat2test = rand(-100:1:100, 8,8)
+
+# ╔═╡ 42ae18e1-665c-4ae2-a5d4-dd8cb9434307
+decompresionImagen(compresionImagen((mat2test, matTest, matTest)))[1] == mat2test
+
+# ╔═╡ f8a4313b-46f8-4134-a26e-02633b9b6ffa
+decompresionImagen(compresionImagen((mat2test, mat2test, mat2test)))[1]
+
+# ╔═╡ 5f07895f-75ec-4138-be31-40a340213fc1
+mat2test
 
 # ╔═╡ 753f9f6b-7244-418c-9df7-3c33a7194270
 md""" #### Guardado
@@ -731,6 +780,7 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
@@ -1003,9 +1053,9 @@ version = "1.2.1"
 
 [[deps.ImageMagick_jll]]
 deps = ["Artifacts", "Ghostscript_jll", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "Pkg", "Zlib_jll", "libpng_jll"]
-git-tree-sha1 = "f025b79883f361fa1bd80ad132773161d231fd9f"
+git-tree-sha1 = "124626988534986113cfd876e3093e4a03890f58"
 uuid = "c73af94c-d91f-53ed-93a7-00f77d67a9d7"
-version = "6.9.12+2"
+version = "6.9.12+3"
 
 [[deps.ImageMetadata]]
 deps = ["AxisArrays", "ImageAxes", "ImageBase", "ImageCore"]
@@ -1645,12 +1695,24 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╟─66e99f7f-3d1b-4fdc-ac24-4d30c535d654
 # ╟─2191cb16-01a7-4f7f-9019-413dc5d52cdc
 # ╠═6ac98964-92e0-4cf3-a004-51194f17ee73
+# ╠═1fe0ba5e-84da-4b57-8aa6-0d946b1b78ee
 # ╠═2e59ff10-e8a5-489a-8a36-8da42d837630
+# ╠═75801208-efa8-4a3e-b70b-4945727c0c48
 # ╠═5b4e7d2a-776c-4857-9df8-14876b48e35f
 # ╠═5e680105-b838-4f8b-bdf5-f838f214d9ba
 # ╠═e2bd21a4-7902-401c-9938-66a9031b8535
 # ╠═b794726d-71d0-452c-8181-5b889d39291b
 # ╠═4d6d4988-315e-4448-9fb9-0c4bf17e5609
+# ╠═272893f3-708f-4a11-a7ad-df9a3e958b01
+# ╠═b056be92-f782-4578-924e-83f5d808ab01
+# ╠═5562274e-9718-4fa0-8810-442e7b4770a4
+# ╠═d43cf954-aaa6-45a1-8e8f-92bb4cf598f7
+# ╠═b7d53246-0e90-45c6-b641-90d244fe50df
+# ╠═998fcd81-b3b7-41a5-9130-9614962c4dae
+# ╠═facc26e8-c08b-419e-8db0-63b57744ae0d
+# ╠═42ae18e1-665c-4ae2-a5d4-dd8cb9434307
+# ╠═f8a4313b-46f8-4134-a26e-02633b9b6ffa
+# ╠═5f07895f-75ec-4138-be31-40a340213fc1
 # ╟─753f9f6b-7244-418c-9df7-3c33a7194270
 # ╟─2758a0f4-56be-428d-8997-b4c35ff73e25
 # ╟─b25eb87f-09bb-44af-81c5-9f2e5905e59f
