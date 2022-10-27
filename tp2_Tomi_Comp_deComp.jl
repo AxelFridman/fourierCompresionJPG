@@ -294,10 +294,10 @@ end
 function antitransformarMatriz(matrix)
 	alto  = length(matrix[1,:])
 	ancho = length(matrix[:,1])
-	matrizcopia = copy(matrix)
+	matrizcopia = copy(Float64.(matrix))
 	for i in 1:8:ancho
 		for j in 1:8:alto
-			matrizcopia[i:i+7,j:j+7]  = floor.(0.1 .+ idct(matrizcopia[i:i+7,j:j+7]))
+			matrizcopia[i:i+7,j:j+7]  = (idct(matrizcopia[i:i+7,j:j+7]))
 			end
 		end
 	return matrizcopia
@@ -613,15 +613,16 @@ end
 # ╔═╡ 2e59ff10-e8a5-489a-8a36-8da42d837630
 # inversa
 function decompresion(vec, alto, ancho)
-	matrix = zeros(Int, alto, ancho)
+	matrix = zeros(alto, ancho)
 	for i in 1:2:Int(length(vec)/2)
-		for j in 1:8:alto
-			for k in 1:8:ancho
+		for j in 1:8:alto #ESTA MAL DEPENDE DE I
+			for k in 1:8:ancho #ESTA MAL DEPENDE DE I
+				
 				vals = vec[i+1]
 				reps = vec[i]
 				vmat = inverse_rle(vals,reps)
-				
-				matTransf =  Int.(generarMatrizDesdeVectorZigZag(vmat))
+			
+				matTransf =  (generarMatrizDesdeVectorZigZag(vmat))
 				
 				matrix[j:j+7,k:k+7] .= matTransf
 
@@ -665,11 +666,13 @@ begin
 	# Testeo
 	tuplaMat = (matTest,matTest,matTest)
 	comprimida = compresionImagen(tuplaMat)
+1
+
 	decompresionImagen(comprimida)
 end
 
 # ╔═╡ 4d6d4988-315e-4448-9fb9-0c4bf17e5609
-decompresion(compresion())
+
 
 # ╔═╡ 272893f3-708f-4a11-a7ad-df9a3e958b01
 comprimidafull = (quantizacion(transformarImagen(descomposicionYCbCr(rellenarImagen(imping))), quant))
@@ -687,16 +690,22 @@ decompresion(compresion(matTest)[1],16,16)
 matTest
 
 # ╔═╡ facc26e8-c08b-419e-8db0-63b57744ae0d
-mat2test = rand(-100:1:100, 8,8)
+mat2test = rand(-100:1:100, 16,16)
 
 # ╔═╡ 42ae18e1-665c-4ae2-a5d4-dd8cb9434307
-decompresionImagen(compresionImagen((mat2test, matTest, matTest)))[1] == mat2test
+decompresionImagen(compresionImagen((mat2test, matTest, matTest)))[1] 
 
 # ╔═╡ f8a4313b-46f8-4134-a26e-02633b9b6ffa
 decompresionImagen(compresionImagen((mat2test, mat2test, mat2test)))[1]
 
 # ╔═╡ 5f07895f-75ec-4138-be31-40a340213fc1
 mat2test
+
+# ╔═╡ 40cb7245-469e-49ca-a68b-5a4f9c1fb66a
+comprimidafull2 = compresionImagen(quantizacion(transformarImagen(descomposicionYCbCr(rellenarImagen(imping))), quant))
+
+# ╔═╡ b3dcb7fe-4a83-48d4-8cc5-081156df8e12
+decompresionfull2 =  recomposicionRGB(AntitransformarImagen(invquantizacion(decompresionImagen(comprimidafull2), quant))) 
 
 # ╔═╡ 753f9f6b-7244-418c-9df7-3c33a7194270
 md""" #### Guardado
@@ -1713,6 +1722,8 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═42ae18e1-665c-4ae2-a5d4-dd8cb9434307
 # ╠═f8a4313b-46f8-4134-a26e-02633b9b6ffa
 # ╠═5f07895f-75ec-4138-be31-40a340213fc1
+# ╠═40cb7245-469e-49ca-a68b-5a4f9c1fb66a
+# ╠═b3dcb7fe-4a83-48d4-8cc5-081156df8e12
 # ╟─753f9f6b-7244-418c-9df7-3c33a7194270
 # ╟─2758a0f4-56be-428d-8997-b4c35ff73e25
 # ╟─b25eb87f-09bb-44af-81c5-9f2e5905e59f
