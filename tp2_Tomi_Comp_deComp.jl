@@ -582,6 +582,28 @@ md"""Implementar la función que genera este vector.
 
 Implementar también su inversa que debe tomar la larga tira de datos y separarla en 3 trozos de tamaño adecuado, y cada trozo en parejas (repeticiones y valores) por bloque, que luego deben reensamblarse (con `inverse_rle`) y acomodarse en la matriz correspondiente."""
 
+# ╔═╡ 2e59ff10-e8a5-489a-8a36-8da42d837630
+# inversa
+"function decompresion(vec, alto, ancho)
+	matrix = zeros(alto, ancho)
+	for i in 1:2:Int(length(vec)/2)
+		for j in 1:8:alto #ESTA MAL DEPENDE DE I
+			for k in 1:8:ancho #ESTA MAL DEPENDE DE I
+				
+				vals = vec[i+1]
+				reps = vec[i]
+				vmat = inverse_rle(vals,reps)
+			
+				matTransf =  (generarMatrizDesdeVectorZigZag(vmat))
+				
+				matrix[j:j+7,k:k+7] .= matTransf
+
+			end
+		end
+	end
+	return matrix
+end "
+
 # ╔═╡ 6ac98964-92e0-4cf3-a004-51194f17ee73
 # compresion
 # compresion
@@ -610,33 +632,33 @@ function compresionImagen(tuplaMatrices)
 	return(resultados1,resultados2, resultados3)
 end
 
-# ╔═╡ 2e59ff10-e8a5-489a-8a36-8da42d837630
-# inversa
-function decompresion(vec, alto, ancho)
+# ╔═╡ 86ad4a83-44c1-4ce6-a820-e858d9ef5724
+function decompresion2(vec, alto, ancho)
 	matrix = zeros(alto, ancho)
-	for i in 1:2:Int(length(vec)/2)
-		for j in 1:8:alto #ESTA MAL DEPENDE DE I
-			for k in 1:8:ancho #ESTA MAL DEPENDE DE I
+	jAlto = 1 
+	kAncho = 1
+	for i in 1:2:Int(length(vec))
+			vals = vec[i+1]
+			reps = vec[i]
+			vmat = inverse_rle(vals,reps)
+			matTransf =  (generarMatrizDesdeVectorZigZag(vmat))
 				
-				vals = vec[i+1]
-				reps = vec[i]
-				vmat = inverse_rle(vals,reps)
+			matrix[jAlto:jAlto+7,kAncho:kAncho+7] .= matTransf
 			
-				matTransf =  (generarMatrizDesdeVectorZigZag(vmat))
-				
-				matrix[j:j+7,k:k+7] .= matTransf
-
+			kAncho = kAncho + 8
+			if(kAncho>=ancho)
+				kAncho = 1
+				jAlto= jAlto+8
 			end
-		end
 	end
 	return matrix
 end
 
 # ╔═╡ 75801208-efa8-4a3e-b70b-4945727c0c48
 function decompresionImagen(tuplaComprimidas)
-	resultados1 = decompresion(tuplaComprimidas[1][1],tuplaComprimidas[1][2],tuplaComprimidas[1][3])
-	resultados2 = decompresion(tuplaComprimidas[2][1],tuplaComprimidas[2][2],tuplaComprimidas[2][3])
-	resultados3 = decompresion(tuplaComprimidas[3][1],tuplaComprimidas[3][2],tuplaComprimidas[3][3])
+	resultados1 = decompresion2(tuplaComprimidas[1][1],tuplaComprimidas[1][2],tuplaComprimidas[1][3])
+	resultados2 = decompresion2(tuplaComprimidas[2][1],tuplaComprimidas[2][2],tuplaComprimidas[2][3])
+	resultados3 = decompresion2(tuplaComprimidas[3][1],tuplaComprimidas[3][2],tuplaComprimidas[3][3])
 	return(resultados1,resultados2, resultados3)
 end
 
@@ -666,7 +688,6 @@ begin
 	# Testeo
 	tuplaMat = (matTest,matTest,matTest)
 	comprimida = compresionImagen(tuplaMat)
-1
 
 	decompresionImagen(comprimida)
 end
@@ -684,16 +705,19 @@ comprimidafull = (quantizacion(transformarImagen(descomposicionYCbCr(rellenarIma
 decomprimidaFull = recomposicionRGB(AntitransformarImagen(invquantizacion((comprimidafull), quant)))
 
 # ╔═╡ d43cf954-aaa6-45a1-8e8f-92bb4cf598f7
-decompresion(compresion(matTest)[1],16,16)
+decompresion2(compresion(matTest)[1],16,16)
 
 # ╔═╡ b7d53246-0e90-45c6-b641-90d244fe50df
 matTest
 
 # ╔═╡ facc26e8-c08b-419e-8db0-63b57744ae0d
-mat2test = rand(-100:1:100, 16,16)
+mat2test = rand(-100:1:100, 32,32)
 
 # ╔═╡ 42ae18e1-665c-4ae2-a5d4-dd8cb9434307
-decompresionImagen(compresionImagen((mat2test, matTest, matTest)))[1] 
+testDec = decompresionImagen(compresionImagen((mat2test, matTest, matTest)))[1] 
+
+# ╔═╡ 131a7492-47c9-4b2a-90f5-ca88bf4887b5
+show(stdout, "text/plain", testDec)
 
 # ╔═╡ f8a4313b-46f8-4134-a26e-02633b9b6ffa
 decompresionImagen(compresionImagen((mat2test, mat2test, mat2test)))[1]
@@ -739,6 +763,25 @@ lee 8 bytes y los devuelve como número entero, que se guarda en `a`. Si luego s
 se leerá el noveno byte del archivo como un entero y se lo guardará en `b`. """
 
 
+# ╔═╡ f64e94a6-98a4-47b6-aa6c-9396156558ba
+begin
+	num1 = UInt8(126)
+	num2 = UInt8(12)
+	io = open("testcito.taxt","w")
+	write(io,num1)
+	write(io,num2)
+	close(io)
+end
+
+# ╔═╡ c1e49703-7873-4955-8bc5-35cda63c2166
+UInt8(126)
+
+# ╔═╡ 90ca978b-502c-4f31-9868-ec26ba6ac024
+begin
+	io2 = open("testcito.taxt","r")
+	a = Int.(read(io2))
+end
+
 # ╔═╡ 2758a0f4-56be-428d-8997-b4c35ff73e25
 md"""##### Nota sobre tipos:
 
@@ -759,6 +802,66 @@ Los distintos formatos de archivo utilizan marcadores para identificar el inicio
 
 # ╔═╡ ef5d2e2c-4677-443d-8f96-a7cbea0795be
 # guardado
+function guardado(compresion, nombre)
+	comp1, comp2, comp3 = compresion
+	alto = 128#comp1[2]
+	ancho = 256#comp1[3]
+	io = open(nombre,"w")
+	write(io,UInt16(alto))
+	write(io,UInt16(ancho))
+	for i in 1:3
+		for j in 1:length(compresion[i][1])
+			if(compresion[i][1][j][2]<0)
+				print(compresion[i][1][j][2])
+				print(" ")
+				print(i)
+				print(" ")
+				print(j)
+			end
+			write(io,UInt8(compresion[i][1][j][1]))
+			write(io,UInt8(compresion[i][1][j][2]))
+		end
+	end
+	close(io)
+
+	return comp1
+end
+
+# ╔═╡ b70d0cd7-a07f-4957-8994-fae18d5b3a64
+comprimidafull2
+
+# ╔═╡ 0201edbd-1547-4fa9-b923-633d0762cea3
+comprimidafull2[1][1][2][2]
+
+# ╔═╡ 36496096-a34b-4efd-bd49-3001fcaad17b
+nombreArchivo = "holaa.adas"
+
+# ╔═╡ c1983848-41c1-4cc1-903b-6fd603e83177
+guardado(comprimidafull2 ,nombreArchivo)
+
+# ╔═╡ 630253c6-1bfc-483d-a33f-4fc4177baa37
+begin
+	io3 = open(nombreArchivo,"r")
+	a2 = Int.(read(io3))
+	print(a2)
+
+	altoReal =a2[1]*1 + a2[2]*256
+	anchoReal =a2[3]*1 + a2[4]*256
+end
+
+# ╔═╡ 6d015828-f334-4dd5-a011-f9fbe8885f57
+	write(io,UInt8(40))
+	write(io,UInt8(50))
+	write(io,UInt8(60))
+	write(io,UInt8(70))
+	write(io,UInt8(80))
+	write(io,UInt8(90))
+	write(io,UInt8(100))
+	write(io,UInt8(110))
+	write(io,UInt8(120))
+
+# ╔═╡ 7692b666-3b99-4b28-9ccd-5ff2f22fd9b1
+read(io3)
 
 # ╔═╡ 04667800-3b83-4994-9cd4-74e42b724373
 # lectura
@@ -1703,9 +1806,10 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═8554d36c-5975-42cb-b8cb-56741097d071
 # ╟─66e99f7f-3d1b-4fdc-ac24-4d30c535d654
 # ╟─2191cb16-01a7-4f7f-9019-413dc5d52cdc
-# ╠═6ac98964-92e0-4cf3-a004-51194f17ee73
 # ╠═1fe0ba5e-84da-4b57-8aa6-0d946b1b78ee
 # ╠═2e59ff10-e8a5-489a-8a36-8da42d837630
+# ╠═6ac98964-92e0-4cf3-a004-51194f17ee73
+# ╠═86ad4a83-44c1-4ce6-a820-e858d9ef5724
 # ╠═75801208-efa8-4a3e-b70b-4945727c0c48
 # ╠═5b4e7d2a-776c-4857-9df8-14876b48e35f
 # ╠═5e680105-b838-4f8b-bdf5-f838f214d9ba
@@ -1720,14 +1824,25 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═998fcd81-b3b7-41a5-9130-9614962c4dae
 # ╠═facc26e8-c08b-419e-8db0-63b57744ae0d
 # ╠═42ae18e1-665c-4ae2-a5d4-dd8cb9434307
+# ╠═131a7492-47c9-4b2a-90f5-ca88bf4887b5
 # ╠═f8a4313b-46f8-4134-a26e-02633b9b6ffa
 # ╠═5f07895f-75ec-4138-be31-40a340213fc1
 # ╠═40cb7245-469e-49ca-a68b-5a4f9c1fb66a
 # ╠═b3dcb7fe-4a83-48d4-8cc5-081156df8e12
 # ╟─753f9f6b-7244-418c-9df7-3c33a7194270
+# ╠═f64e94a6-98a4-47b6-aa6c-9396156558ba
+# ╟─c1e49703-7873-4955-8bc5-35cda63c2166
+# ╠═90ca978b-502c-4f31-9868-ec26ba6ac024
 # ╟─2758a0f4-56be-428d-8997-b4c35ff73e25
 # ╟─b25eb87f-09bb-44af-81c5-9f2e5905e59f
 # ╠═ef5d2e2c-4677-443d-8f96-a7cbea0795be
+# ╠═b70d0cd7-a07f-4957-8994-fae18d5b3a64
+# ╠═0201edbd-1547-4fa9-b923-633d0762cea3
+# ╠═c1983848-41c1-4cc1-903b-6fd603e83177
+# ╠═36496096-a34b-4efd-bd49-3001fcaad17b
+# ╠═630253c6-1bfc-483d-a33f-4fc4177baa37
+# ╠═6d015828-f334-4dd5-a011-f9fbe8885f57
+# ╠═7692b666-3b99-4b28-9ccd-5ff2f22fd9b1
 # ╠═04667800-3b83-4994-9cd4-74e42b724373
 # ╟─57f662e0-cbcb-4042-b2c7-36db10246610
 # ╟─63ca201c-3de7-490b-a243-20bfbaaea5ed
