@@ -617,6 +617,7 @@ function compresion(matrix)
 	for i in 1:8:Int(alto)
 		for j in 1:8:Int(ancho)
 			vals,reps = rle(generarVectorzigzag(matrix[i:i+7,j:j+7]))
+			
 			push!(res,reps)
 			push!(res,vals)
 		end
@@ -638,18 +639,19 @@ function decompresion2(vec, alto, ancho)
 	jAlto = 1 
 	kAncho = 1
 	for i in 1:2:Int(length(vec))
-			vals = vec[i+1]
-			reps = vec[i]
-			vmat = inverse_rle(vals,reps)
-			matTransf =  (generarMatrizDesdeVectorZigZag(vmat))
-				
-			matrix[jAlto:jAlto+7,kAncho:kAncho+7] .= matTransf
+		reps = vec[i]	
+		vals = vec[i+1]
 			
-			kAncho = kAncho + 8
-			if(kAncho>=ancho)
-				kAncho = 1
-				jAlto= jAlto+8
-			end
+		vmat = inverse_rle(vals,reps)
+		matTransf =  (generarMatrizDesdeVectorZigZag(vmat))
+			
+		matrix[jAlto:jAlto+7,kAncho:kAncho+7] .= matTransf
+		
+		kAncho = kAncho + 8
+		if(kAncho>=ancho)
+			kAncho = 1
+			jAlto= jAlto+8
+		end
 	end
 	return matrix
 end
@@ -692,18 +694,6 @@ begin
 	decompresionImagen(comprimida)
 end
 
-# ╔═╡ 4d6d4988-315e-4448-9fb9-0c4bf17e5609
-
-
-# ╔═╡ 272893f3-708f-4a11-a7ad-df9a3e958b01
-comprimidafull = (quantizacion(transformarImagen(descomposicionYCbCr(rellenarImagen(imping))), quant))
-
-# ╔═╡ b056be92-f782-4578-924e-83f5d808ab01
-
-
-# ╔═╡ 5562274e-9718-4fa0-8810-442e7b4770a4
-decomprimidaFull = recomposicionRGB(AntitransformarImagen(invquantizacion((comprimidafull), quant)))
-
 # ╔═╡ d43cf954-aaa6-45a1-8e8f-92bb4cf598f7
 decompresion2(compresion(matTest)[1],16,16)
 
@@ -711,7 +701,7 @@ decompresion2(compresion(matTest)[1],16,16)
 matTest
 
 # ╔═╡ facc26e8-c08b-419e-8db0-63b57744ae0d
-mat2test = rand(-100:1:100, 32,32)
+mat2test = rand(-100:1:100, 3200,648)
 
 # ╔═╡ 42ae18e1-665c-4ae2-a5d4-dd8cb9434307
 testDec = decompresionImagen(compresionImagen((mat2test, matTest, matTest)))[1] 
@@ -723,13 +713,32 @@ show(stdout, "text/plain", testDec)
 decompresionImagen(compresionImagen((mat2test, mat2test, mat2test)))[1]
 
 # ╔═╡ 5f07895f-75ec-4138-be31-40a340213fc1
-mat2test
+mat2test == decompresionImagen(compresionImagen((mat2test, mat2test, mat2test)))[1]
 
 # ╔═╡ 40cb7245-469e-49ca-a68b-5a4f9c1fb66a
 comprimidafull2 = compresionImagen(quantizacion(transformarImagen(descomposicionYCbCr(rellenarImagen(imping))), quant))
 
+# ╔═╡ 3aa86e4e-6e5e-45b4-a5ca-d2a15e9ecffc
+
+comprimidafull3 = compresionImagen(quantizacion(transformarImagen(descomposicionYCbCr(rellenarImagen(imgmandamp))), quant))
+
 # ╔═╡ b3dcb7fe-4a83-48d4-8cc5-081156df8e12
 decompresionfull2 =  recomposicionRGB(AntitransformarImagen(invquantizacion(decompresionImagen(comprimidafull2), quant))) 
+
+# ╔═╡ 4b420dbd-594f-4556-8b5a-68b5f4466d7c
+decompresionImagen(comprimidafull2)
+
+# ╔═╡ 0ed82ccf-c340-4f1e-aff2-3022454a3203
+imgmandamp
+
+# ╔═╡ f206d06c-44d5-4dc7-991f-4b3fc449b2c9
+decompresionfull3 =  recomposicionRGB(AntitransformarImagen(invquantizacion(decompresionImagen(comprimidafull3), quant))) 
+
+# ╔═╡ 24168cf6-4813-45dc-9207-4a5166eccb0d
+tuplasDesdeGuardado[1] == 
+
+# ╔═╡ e74dc9f6-3c96-435c-8534-6835114807fa
+
 
 # ╔═╡ 753f9f6b-7244-418c-9df7-3c33a7194270
 md""" #### Guardado
@@ -804,22 +813,20 @@ Los distintos formatos de archivo utilizan marcadores para identificar el inicio
 # guardado
 function guardado(compresion, nombre)
 	comp1, comp2, comp3 = compresion
-	alto = 128#comp1[2]
-	ancho = 256#comp1[3]
+	alto = comp1[2]
+	ancho = comp1[3]
 	io = open(nombre,"w")
 	write(io,UInt16(alto))
 	write(io,UInt16(ancho))
 	for i in 1:3
-		for j in 1:length(compresion[i][1])
-			if(compresion[i][1][j][2]<0)
-				print(compresion[i][1][j][2])
-				print(" ")
-				print(i)
-				print(" ")
-				print(j)
+		for j in 1:2:length(compresion[i][1])
+			
+			for k in 1:length(compresion[i][1][j])
+				write(io,Int8(compresion[i][1][j][k]))
 			end
-			write(io,UInt8(compresion[i][1][j][1]))
-			write(io,UInt8(compresion[i][1][j][2]))
+			for k in 1:length(compresion[i][1][j])
+				write(io,Int8(compresion[i][1][j+1][k]))
+			end
 		end
 	end
 	close(io)
@@ -827,8 +834,78 @@ function guardado(compresion, nombre)
 	return comp1
 end
 
-# ╔═╡ b70d0cd7-a07f-4957-8994-fae18d5b3a64
-comprimidafull2
+# ╔═╡ 897fd073-5eea-4f2c-850d-7073a7ed0b2e
+function desguardado(lista)
+	for i in 5:length(lista)
+		if(lista[i]>128)
+			lista[i] = lista[i] -256
+		end
+	end
+		
+	altoReal =lista[1]*1 + lista[2]*256
+	anchoReal =lista[3]*1 + lista[4]*256
+	mat1 = []
+	mat2 = []
+	mat3 = []
+	tamanioLista1 = altoReal*anchoReal/64
+	print(tamanioLista1)
+	print(" ")
+
+	tamanioLista23 = altoReal/2*anchoReal/2 / 64
+	cantidadPegos = 0
+	j = 5
+	while (j<=length(lista))
+		suma = 0
+		cantInd = 0
+		repaux = []
+		valsaux = []
+		while (suma < 64)
+			
+			push!(repaux, lista[j])
+			suma = suma + lista[j]
+			j = j + 1
+			cantInd = cantInd + 1
+		end
+		while (cantInd > 0)
+			push!(valsaux, lista[j])
+			j = j + 1
+			cantInd = cantInd - 1
+		end
+		
+		if(cantidadPegos<tamanioLista1)
+			push!(mat1, repaux)
+			push!(mat1, valsaux)
+			cantidadPegos = cantidadPegos + 1
+			#print(cantidadPegos)
+			#print(" ")
+		elseif(cantidadPegos<tamanioLista1+tamanioLista23)
+			push!(mat2, repaux)
+			push!(mat2, valsaux)
+			cantidadPegos = cantidadPegos + 1
+		else
+			push!(mat3, repaux)
+			push!(mat3, valsaux)
+			cantidadPegos = cantidadPegos + 1
+		end
+	end
+	mat11 = (mat1, altoReal, anchoReal)
+	mat22 = (mat2, Int(altoReal/2), Int(anchoReal/2))
+	mat33 = (mat3, Int(altoReal/2), Int(anchoReal/2))
+	tuplaMatComp = (mat11, mat22, mat33)
+	return tuplaMatComp
+end
+
+# ╔═╡ 929869da-0e7d-45cd-8ccf-e7f4ec1e84a4
+
+
+# ╔═╡ 5fadcf41-1e7a-41f6-9596-60d06308b129
+typeof(comprimidafull2)
+
+# ╔═╡ 6395392d-3046-44c7-bcd8-479d45f51389
+
+
+# ╔═╡ 39168f4d-f12b-4848-b4da-a69cef6b15ca
+Int8(127)
 
 # ╔═╡ 0201edbd-1547-4fa9-b923-633d0762cea3
 comprimidafull2[1][1][2][2]
@@ -849,16 +926,60 @@ begin
 	anchoReal =a2[3]*1 + a2[4]*256
 end
 
+# ╔═╡ cf7d189b-b4b7-45da-804c-2697f16bb772
+a2
+
+# ╔═╡ 424fe304-c1af-443a-90c8-1b54b4924afd
+tuplasDesdeGuardado = desguardado(a2)
+
+# ╔═╡ eb258a17-4def-45d5-a874-68870a751ecd
+decompresionImagen(tuplasDesdeGuardado)
+
+# ╔═╡ 33b3d5da-4bdc-461c-a16e-ee5941642d25
+tuplasDesdeGuardado == comprimidafull2
+
+# ╔═╡ b70d0cd7-a07f-4957-8994-fae18d5b3a64
+comprimidafull2 == tuplasDesdeGuardado
+
+# ╔═╡ 6e381c0b-cf5d-4dbd-afea-b24b099d7fb2
+typeof(tuplasDesdeGuardado)
+
+# ╔═╡ 2226ff4a-330b-41c4-aaa9-9116250dddd4
+# ╠═╡ show_logs = false
+begin
+	NN = length(tuplasDesdeGuardado[1][1])
+	resssss = 0
+	
+	for i in 1:NN
+		if(tuplasDesdeGuardado[1][1][i] != comprimidafull2[1][1][i])
+			print(tuplasDesdeGuardado[1][1][i])
+			print(" ")
+			print(comprimidafull2[1][1][i])
+			print(" -- ")
+			resssss = resssss+1
+		end
+		
+	end
+end
+
+# ╔═╡ 27fc4e96-de34-4206-b515-b724fed88ba9
+resssss
+
+# ╔═╡ 6fa0cf0a-04a2-4d7c-96c5-89201a374f82
+a2
+
 # ╔═╡ 6d015828-f334-4dd5-a011-f9fbe8885f57
-	write(io,UInt8(40))
-	write(io,UInt8(50))
-	write(io,UInt8(60))
-	write(io,UInt8(70))
-	write(io,UInt8(80))
-	write(io,UInt8(90))
-	write(io,UInt8(100))
-	write(io,UInt8(110))
-	write(io,UInt8(120))
+begin
+		write(io,UInt8(40))
+		write(io,UInt8(50))
+		write(io,UInt8(60))
+		write(io,UInt8(70))
+		write(io,UInt8(80))
+		write(io,UInt8(90))
+		write(io,UInt8(100))
+		write(io,UInt8(110))
+		write(io,UInt8(120))
+end
 
 # ╔═╡ 7692b666-3b99-4b28-9ccd-5ff2f22fd9b1
 read(io3)
@@ -1165,9 +1286,9 @@ version = "1.2.1"
 
 [[deps.ImageMagick_jll]]
 deps = ["Artifacts", "Ghostscript_jll", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "Pkg", "Zlib_jll", "libpng_jll"]
-git-tree-sha1 = "124626988534986113cfd876e3093e4a03890f58"
+git-tree-sha1 = "f025b79883f361fa1bd80ad132773161d231fd9f"
 uuid = "c73af94c-d91f-53ed-93a7-00f77d67a9d7"
-version = "6.9.12+3"
+version = "6.9.12+2"
 
 [[deps.ImageMetadata]]
 deps = ["AxisArrays", "ImageAxes", "ImageBase", "ImageCore"]
@@ -1815,10 +1936,6 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═5e680105-b838-4f8b-bdf5-f838f214d9ba
 # ╠═e2bd21a4-7902-401c-9938-66a9031b8535
 # ╠═b794726d-71d0-452c-8181-5b889d39291b
-# ╠═4d6d4988-315e-4448-9fb9-0c4bf17e5609
-# ╠═272893f3-708f-4a11-a7ad-df9a3e958b01
-# ╠═b056be92-f782-4578-924e-83f5d808ab01
-# ╠═5562274e-9718-4fa0-8810-442e7b4770a4
 # ╠═d43cf954-aaa6-45a1-8e8f-92bb4cf598f7
 # ╠═b7d53246-0e90-45c6-b641-90d244fe50df
 # ╠═998fcd81-b3b7-41a5-9130-9614962c4dae
@@ -1828,7 +1945,16 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═f8a4313b-46f8-4134-a26e-02633b9b6ffa
 # ╠═5f07895f-75ec-4138-be31-40a340213fc1
 # ╠═40cb7245-469e-49ca-a68b-5a4f9c1fb66a
+# ╠═3aa86e4e-6e5e-45b4-a5ca-d2a15e9ecffc
 # ╠═b3dcb7fe-4a83-48d4-8cc5-081156df8e12
+# ╠═4b420dbd-594f-4556-8b5a-68b5f4466d7c
+# ╠═eb258a17-4def-45d5-a874-68870a751ecd
+# ╠═33b3d5da-4bdc-461c-a16e-ee5941642d25
+# ╠═0ed82ccf-c340-4f1e-aff2-3022454a3203
+# ╠═f206d06c-44d5-4dc7-991f-4b3fc449b2c9
+# ╠═24168cf6-4813-45dc-9207-4a5166eccb0d
+# ╠═e74dc9f6-3c96-435c-8534-6835114807fa
+# ╠═cf7d189b-b4b7-45da-804c-2697f16bb772
 # ╟─753f9f6b-7244-418c-9df7-3c33a7194270
 # ╠═f64e94a6-98a4-47b6-aa6c-9396156558ba
 # ╟─c1e49703-7873-4955-8bc5-35cda63c2166
@@ -1836,11 +1962,21 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╟─2758a0f4-56be-428d-8997-b4c35ff73e25
 # ╟─b25eb87f-09bb-44af-81c5-9f2e5905e59f
 # ╠═ef5d2e2c-4677-443d-8f96-a7cbea0795be
+# ╠═897fd073-5eea-4f2c-850d-7073a7ed0b2e
+# ╠═424fe304-c1af-443a-90c8-1b54b4924afd
 # ╠═b70d0cd7-a07f-4957-8994-fae18d5b3a64
+# ╠═929869da-0e7d-45cd-8ccf-e7f4ec1e84a4
+# ╠═6e381c0b-cf5d-4dbd-afea-b24b099d7fb2
+# ╠═5fadcf41-1e7a-41f6-9596-60d06308b129
+# ╠═6395392d-3046-44c7-bcd8-479d45f51389
+# ╠═2226ff4a-330b-41c4-aaa9-9116250dddd4
+# ╠═27fc4e96-de34-4206-b515-b724fed88ba9
+# ╠═39168f4d-f12b-4848-b4da-a69cef6b15ca
 # ╠═0201edbd-1547-4fa9-b923-633d0762cea3
-# ╠═c1983848-41c1-4cc1-903b-6fd603e83177
 # ╠═36496096-a34b-4efd-bd49-3001fcaad17b
+# ╠═c1983848-41c1-4cc1-903b-6fd603e83177
 # ╠═630253c6-1bfc-483d-a33f-4fc4177baa37
+# ╠═6fa0cf0a-04a2-4d7c-96c5-89201a374f82
 # ╠═6d015828-f334-4dd5-a011-f9fbe8885f57
 # ╠═7692b666-3b99-4b28-9ccd-5ff2f22fd9b1
 # ╠═04667800-3b83-4994-9cd4-74e42b724373
