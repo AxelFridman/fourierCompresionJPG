@@ -7,6 +7,9 @@ using InteractiveUtils
 # ╔═╡ 1572d199-17f8-4ae3-8253-cc27e86f697f
 using Images, FFTW, StatsBase
 
+# ╔═╡ 998fcd81-b3b7-41a5-9130-9614962c4dae
+using Random
+
 # ╔═╡ 35b23d07-f643-49f4-8789-73ddbdeabdfe
 
 
@@ -30,7 +33,7 @@ md"""### Imágenes
 Los elementos básicos para operar con imágenes están en la librería `Images`. Para cargar una imagen se puede utilizar el comando `load`:"""
 
 # ╔═╡ 1869c3d3-f224-485c-a164-da485f1a02d3
-im = load("Meisje_met_de_parel.jpg")
+im = load("Meisje_met_de_parel.jpg") 
 
 # ╔═╡ 9e6e8d4e-684e-4e75-beb4-15cf55a889a0
 imping = load("pinguino.bmp")
@@ -40,9 +43,6 @@ impmandel = load("mandel.bmp")
 
 # ╔═╡ 4b2191fb-f952-423f-8321-201e1c35ef6e
 md"""La imagen se carga esencialmente como una matriz que en cada casillero tiene un elemento de tipo `RGB`:"""
-
-# ╔═╡ 554b169a-d7f9-4835-901d-0715facb38a0
-typeof(im[1,1])
 
 # ╔═╡ f96dbd2e-de85-4855-9cfd-9f74263190e8
 md"""Podemos crear nuevos elementos de tipo `RGB` con el comando `RGB()` que recibe tres números (los valores de `red`, `green` y `blue` que componen el color):"""
@@ -86,7 +86,7 @@ end
 
 # ╔═╡ ae8cadbd-7ef7-4a2c-9f6e-2dedf8c79026
 begin
-	#RGB(0.2,0.8,0.9)
+	#RGB(0.2,0.8,0.9)a
 	A = YCbCr(RGB(0.2,0.8,0.9))
 end
 
@@ -291,10 +291,10 @@ end
 function antitransformarMatriz(matrix)
 	alto  = length(matrix[1,:])
 	ancho = length(matrix[:,1])
-	matrizcopia = copy(matrix)
+	matrizcopia = copy(Float64.(matrix))
 	for i in 1:8:ancho
 		for j in 1:8:alto
-			matrizcopia[i:i+7,j:j+7]  = idct(matrizcopia[i:i+7,j:j+7])
+			matrizcopia[i:i+7,j:j+7]  = (idct(matrizcopia[i:i+7,j:j+7]))
 			end
 		end
 	return matrizcopia
@@ -365,22 +365,22 @@ Implementar también el proceso inverso, que consiste en multiplicar por la matr
 # ╔═╡ a7c04406-82b0-488d-9b4e-ada252579ab5
 # cuantización
 function quantizacion(tuplaMatrices, quantMatriz)
-	matrizcopia1 = copy(tuplaMatrices[1])
-	matrizcopia2 = copy(tuplaMatrices[2])
-	matrizcopia3 = copy(tuplaMatrices[3])
+	matrizcopia1 = zeros(Int, length(tuplaMatrices[1][:,1]), length(tuplaMatrices[1][1,:]))#copy(tuplaMatrices[1])
+	matrizcopia2 = zeros(Int, length(tuplaMatrices[2][:,1]), length(tuplaMatrices[2][1,:]))  #copy(tuplaMatrices[2])
+	matrizcopia3 = zeros(Int, length(tuplaMatrices[3][:,1]), length(tuplaMatrices[3][1,:])) #copy(tuplaMatrices[3])
 	copiasMat = (matrizcopia1,matrizcopia2,matrizcopia3) 
 	for matrizIesima in 1:3
 		alto  = length(tuplaMatrices[matrizIesima][1,:])
 		ancho = length(tuplaMatrices[matrizIesima][:,1])
 		for i in 1:8:ancho
 			for j in 1:8:alto
-				bloque = copiasMat[matrizIesima][i:i+7,j:j+7]
+				bloque = tuplaMatrices[matrizIesima][i:i+7,j:j+7]
 				bloque_cuant = Int.(round.(bloque./quantMatriz))
 				copiasMat[matrizIesima][i:i+7,j:j+7]  = bloque_cuant
 			end
 		end
 	end
-	return copiasMat
+	return (copiasMat)
 end
 
 # ╔═╡ 615a9812-f192-443d-9bd1-c2b7a625e7ed
@@ -401,7 +401,7 @@ function invquantizacion(tuplaMatrices, quantMatriz)
 			end
 		end
 	end
-	return copiasMat
+	return (copiasMat) # HAY QUE ENTERIZARLO
 end
 
 # ╔═╡ 1e38093f-717f-474f-8e3c-cf2bac18099c
@@ -472,7 +472,7 @@ function ponerdiag(mat, ndiag, vec)
 		j = 1
 	else
 		i = 8
-		j = ndiag-8
+		j = ndiag-8+1
 	end
 	for h in 1:length(vec)
 		mat2[j, i] = vec[h]
@@ -483,14 +483,14 @@ function ponerdiag(mat, ndiag, vec)
 end
 
 # ╔═╡ 960e9ddf-9ca6-4bdf-8356-23bb05217b23
-ponerdiag(mat_ejemplo, 5, [-100, 99,77,66,55])
+ponerdiag(mat_ejemplo, 9, [-100, 99,77,66,55,100,100])
 
 # ╔═╡ a716593f-9050-47ce-a8c7-93c82b5e6dd4
 function generarVectorzigzag(mat)
 	vectotal = []
 	for i in 1:16
 		vec1 = damediag(mat,i)
-		if(i<8)
+		if(i<=8)
 			if(i%2==1)
 				vectotal = vcat(vectotal, reverse(vec1))
 			else
@@ -504,7 +504,8 @@ function generarVectorzigzag(mat)
 			end
 		end
 	end
-	
+	ix_drop = 37:44
+	vectotal = deleteat!(vectotal,ix_drop)
 	return (vectotal)
 end
 
@@ -517,15 +518,20 @@ function generarMatrizDesdeVectorZigZag(vectorazo)
 	mat = zeros(8,8)
 	actual = 1
 	for h in 1:length(longitudes)
-		diag = vectorazo[actual:actual + longitudes[h]-1]
+		diag = vectorazo[actual: actual + longitudes[h]-1]
 		actual = actual + longitudes[h]
-		print(diag)
-		print()
+		#print(diag)
+		if(h%2==0)
+			mat = ponerdiag(mat, h, diag)
+		else
+			mat = ponerdiag(mat, h, reverse(diag))
+		end
 	end
+	return mat
 end
 
 # ╔═╡ 29d2d8f7-3b4f-4817-9cb6-95186a4da0da
-generarMatrizDesdeVectorZigZag(vmat)
+matTransf =  Int.(generarMatrizDesdeVectorZigZag(vmat))
 
 # ╔═╡ 0362c20f-fa97-42eb-b0af-1e2332ee42c5
 vmat[2:3]
@@ -547,6 +553,12 @@ begin
 	vector_test = [1,1,1,1,0,0,1,1,0,0,0,0,2,0,0,0,0]
 	vals,reps   = rle(vector_test)
 end
+
+# ╔═╡ 84ddff11-ae06-4bcb-82ab-06e54cbf241d
+reps
+
+# ╔═╡ 18014b47-f08b-4aed-abb8-d0a7b71f9614
+vals
 
 # ╔═╡ 511170ac-e9fa-4136-b5f8-6c08126ad297
 md"""También existe la inversa:"""
@@ -570,24 +582,62 @@ Implementar también su inversa que debe tomar la larga tira de datos y separarl
 # ╔═╡ 6ac98964-92e0-4cf3-a004-51194f17ee73
 # compresion
 # compresion
-# Recibe una matriz y a su submatrices de 8x8 las
-#### DUDOSO!!!!! ######
+# Recibe una matriz y a sus submatrices de 8x8 las las escribe como formato
+# [reps₁,vals₁,reps₂,vals₂,...]
+
 function compresion(matrix)
-alto  = length(matrix[1,:])
-ancho = length(matrix[:,1])
-res = []
-for i in 1:8:ancho
-for j in 1:8:alto
-vals,reps = rle(generarVectorzigzag(matrix[i:i+7,j:j+7]))
-push!(res,reps)
-push!(res,vals)
-end
-end
-return res
+	alto  = length(matrix[:,1])
+	ancho = length(matrix[1,:])
+	res = []
+	for i in 1:8:Int(alto)
+		for j in 1:8:Int(ancho)
+			vals,reps = rle(generarVectorzigzag(matrix[i:i+7,j:j+7]))
+			
+			push!(res,reps)
+			push!(res,vals)
+		end
+	end
+	return res, alto, ancho
 end
 
-# ╔═╡ 2e59ff10-e8a5-489a-8a36-8da42d837630
-# inversa
+# ╔═╡ 1fe0ba5e-84da-4b57-8aa6-0d946b1b78ee
+function compresionImagen(tuplaMatrices)
+	resultados1 = compresion(tuplaMatrices[1])
+	resultados2 = compresion(tuplaMatrices[2])
+	resultados3 = compresion(tuplaMatrices[3])
+	return(resultados1,resultados2, resultados3)
+end
+
+# ╔═╡ 86ad4a83-44c1-4ce6-a820-e858d9ef5724
+function decompresion2(vec, alto, ancho)
+	matrix = zeros(alto, ancho)
+	jAlto = 1 
+	kAncho = 1
+	for i in 1:2:Int(length(vec))
+		reps = Int.(vec[i])	
+		vals = Int.(vec[i+1])
+			
+		vmat = inverse_rle(vals,reps)
+		matTransf =  (generarMatrizDesdeVectorZigZag(vmat))
+			
+		matrix[jAlto:jAlto+7,kAncho:kAncho+7] .= matTransf
+		
+		kAncho = kAncho + 8
+		if(kAncho>=ancho)
+			kAncho = 1
+			jAlto= jAlto+8
+		end
+	end
+	return matrix
+end
+
+# ╔═╡ 75801208-efa8-4a3e-b70b-4945727c0c48
+function decompresionImagen(tuplaComprimidas)
+	resultados1 = decompresion2(tuplaComprimidas[1][1],tuplaComprimidas[1][2],tuplaComprimidas[1][3])
+	resultados2 = decompresion2(tuplaComprimidas[2][1],tuplaComprimidas[2][2],tuplaComprimidas[2][3])
+	resultados3 = decompresion2(tuplaComprimidas[3][1],tuplaComprimidas[3][2],tuplaComprimidas[3][3])
+	return(resultados1,resultados2, resultados3)
+end
 
 # ╔═╡ 753f9f6b-7244-418c-9df7-3c33a7194270
 md""" #### Guardado
@@ -621,6 +671,9 @@ lee 8 bytes y los devuelve como número entero, que se guarda en `a`. Si luego s
 se leerá el noveno byte del archivo como un entero y se lo guardará en `b`. """
 
 
+# ╔═╡ c1e49703-7873-4955-8bc5-35cda63c2166
+UInt8(126)
+
 # ╔═╡ 2758a0f4-56be-428d-8997-b4c35ff73e25
 md"""##### Nota sobre tipos:
 
@@ -641,6 +694,88 @@ Los distintos formatos de archivo utilizan marcadores para identificar el inicio
 
 # ╔═╡ ef5d2e2c-4677-443d-8f96-a7cbea0795be
 # guardado
+function guardado(compresion, nombre)
+	comp1, comp2, comp3 = compresion
+	alto = comp1[2]
+	ancho = comp1[3]
+	io = open(nombre,"w")
+	write(io,UInt16(alto))
+	write(io,UInt16(ancho))
+	for i in 1:3
+		for j in 1:2:length(compresion[i][1])
+			
+			for k in 1:length(compresion[i][1][j])
+				write(io,Int8(compresion[i][1][j][k]))
+			end
+			for k in 1:length(compresion[i][1][j])
+				write(io,Int8(compresion[i][1][j+1][k]))
+			end
+		end
+	end
+	close(io)
+
+	return comp1
+end
+
+# ╔═╡ 897fd073-5eea-4f2c-850d-7073a7ed0b2e
+function desguardado(nombre)
+	io2 = open(nombre,"r")
+	lista = Int.(read(io2))
+	for i in 5:length(lista)
+		if(lista[i]>128)
+			lista[i] = lista[i] -256
+		end
+	end
+		
+	altoReal =lista[1]*1 + lista[2]*256
+	anchoReal =lista[3]*1 + lista[4]*256
+	mat1 = []
+	mat2 = []
+	mat3 = []
+	tamanioLista1 = altoReal*anchoReal/64
+
+	tamanioLista23 = altoReal/2*anchoReal/2 / 64
+	cantidadPegos = 0
+	j = 5
+	while (j<=length(lista))
+		suma = 0
+		cantInd = 0
+		repaux = []
+		valsaux = []
+		while (suma < 64)
+			
+			push!(repaux, lista[j])
+			suma = suma + lista[j]
+			j = j + 1
+			cantInd = cantInd + 1
+		end
+		while (cantInd > 0)
+			push!(valsaux, lista[j])
+			j = j + 1
+			cantInd = cantInd - 1
+		end
+		
+		if(cantidadPegos<tamanioLista1)
+			push!(mat1, repaux)
+			push!(mat1, valsaux)
+			cantidadPegos = cantidadPegos + 1
+
+		elseif(cantidadPegos<tamanioLista1+tamanioLista23)
+			push!(mat2, repaux)
+			push!(mat2, valsaux)
+			cantidadPegos = cantidadPegos + 1
+		else
+			push!(mat3, repaux)
+			push!(mat3, valsaux)
+			cantidadPegos = cantidadPegos + 1
+		end
+	end
+	mat11 = (mat1, altoReal, anchoReal)
+	mat22 = (mat2, Int(altoReal/2), Int(anchoReal/2))
+	mat33 = (mat3, Int(altoReal/2), Int(anchoReal/2))
+	tuplaMatComp = (mat11, mat22, mat33)
+	return tuplaMatComp
+end
 
 # ╔═╡ 04667800-3b83-4994-9cd4-74e42b724373
 # lectura
@@ -655,22 +790,140 @@ md"""#### Todo junto
 
 Ya tenemos todos los elementos. Sólo resta implementar dos funciones que junten todo lo anterior. La primera debe recibir el el nombre de archivo de imagen, cargarlo,  hacer la compresión y guardarla en un nuevo archivo con el mismo nombre y alguna extensión ficticia. La segunda debe recibir un archivo comprimido y realizar el proceso inverso al de compresión y devolver la imagen (de modo de poder verla dentro de Julia). """
 
+# ╔═╡ 1d8e5cb3-60f2-4292-89c1-550c45c48a3c
+quant1=[16 11 10 16 24 40 51 61; 
+   12 12 14 19 26 58 60 55; 
+   14 13 16 24 40 57 69 56; 
+   14 17 22 29 51 87 80 62;
+   18 22 37 56 68 109 103 77;
+   24 35 55 64 81 104 113 92; 
+   49 64 78 87 103 121 120 101;
+	72 92 95 98 112 100 103 99]
+
+# ╔═╡ f4d4135a-c22a-4571-b5bc-bb4c5d0ff03d
+quant2 = [15 11 10 16 24 40 49 59; 
+   12 11 14 19 26 58 60 55; 
+   14 13 15 24 40 57 69 56; 
+   14 17 22 27 51 87 80 62;
+   16 22 37 56 66 109 103 77;
+   22 35 55 64 81 105 113 92; 
+   42 64 78 87 103 121 122 100;
+	73 98 95 98 112 99 101 97]
+
+# ╔═╡ 78e97c71-62c2-49fb-a318-12e760eb1e4c
+begin
+	quant3= 99 * ones(8,8)
+	quant3[1:4, 1:4] .= [17 18 24 47;
+						18 21 26 66;
+						24 26 56 99;
+						47 66 99 99]
+end
+
 # ╔═╡ 1954d1af-732c-4da5-b43b-1105f35dc814
 # codificación
+function codificacion(nombreArchivoOriginal, nombreArchivoComprimido, quant)
+	imagenOriginal = load(nombreArchivoOriginal)
+	comprimidafull = compresionImagen(quantizacion(transformarImagen(descomposicionYCbCr(rellenarImagen(imagenOriginal))), quant))
+	guardado(comprimidafull, nombreArchivoComprimido)
+end
 
 # ╔═╡ 00f33b38-5ad5-4c37-8a22-0501298ff7ae
 # decodificación
+function decodificacion(nombreArchivoComprimido, quant)
+	comprimida = desguardado(nombreArchivoComprimido)
+	decompresionfull2 =  recomposicionRGB(AntitransformarImagen(invquantizacion(decompresionImagen(comprimida), quant))) 
+	return decompresionfull2
+end
+
+# ╔═╡ badf936c-98d2-4e72-a138-260e081fb190
+codificacion("Meisje_met_de_parel.jpg", "pesada.AxelTomiMandan", quant1)
+
+# ╔═╡ fd599b11-dda7-4691-aa94-493b68933685
+decodificacion("pesada.AxelTomiMandan", quant1)
 
 # ╔═╡ 53918244-e558-49ac-9456-ed7f0d7782a1
 md"""#### Pruebas:
 
 Probar la compresión con un par de imágenes a elección. Si es posible, busquen imágenes en formato `.bmp` (sin comprimir). Si utilizan imágenes  `.jpg` seguramente no obtendrán archivos más chicos. En tal caso es mejor partir de imágenes de alta calidad (que dejen margen para comprimir un poco más). En importante tener en cuenta que distintas matrices de cuantización darán lugar a distintos grados de compresión. Probar al menos dos matrices de cuantización. """
 
+# ╔═╡ a029a74d-2da9-4d62-8a60-c7cef563d664
+codificacion("pinguino.bmp", "pingquant1.AxelTomiMandan", quant1)
+
+# ╔═╡ 8daf55c2-2d80-426b-9b1e-872daf9e61d4
+decodificacion("pingquant1.AxelTomiMandan", quant1)
+
+# ╔═╡ 88d67866-9672-496f-90ec-269e5f7ace26
+codificacion("pinguino.bmp", "pingquant2.AxelTomiMandan", quant2)
+
+# ╔═╡ 5fda9ff0-ccf3-470a-9770-c4054bffefb0
+decodificacion("pingquant2.AxelTomiMandan", quant2)
+
+# ╔═╡ 5cded9ce-5bcd-4e4d-bc01-d6856d32024d
+codificacion("pinguino.bmp", "pingquant3.AxelTomiMandan", quant3)
+
+# ╔═╡ a8319bc2-5175-438a-aa03-2a95b4be3ed6
+decodificacion("pingquant3.AxelTomiMandan", quant3)
+
+# ╔═╡ 1d818865-534c-4610-9e08-81cf13ef8183
+codificacion("snail.bmp", "snailquant1.AxelTomiMandan", quant1)
+
+# ╔═╡ 871968d6-22bd-45ba-8340-eab8deda0696
+decodificacion("snailquant1.AxelTomiMandan", quant1)
+
+# ╔═╡ 04338b9f-a5c5-476e-aa6a-450c346b22f4
+codificacion("snail.bmp", "snailquant2.AxelTomiMandan", quant2)
+
+# ╔═╡ 39437ee5-3aa7-453a-b45b-6a2a440d4c1f
+decodificacion("snailquant2.AxelTomiMandan", quant2)
+
+# ╔═╡ 2efbc23c-bef9-4dd6-89f3-7aaec7167139
+codificacion("snail.bmp", "snailquant3.AxelTomiMandan", quant3)
+
+# ╔═╡ cf956f77-9292-4c91-940a-21a502c46dc3
+decodificacion("snailquant3.AxelTomiMandan", quant3)
+
+# ╔═╡ d4a5ecef-601b-4e37-a2cf-b70d0a056f9e
+codificacion("Meisje_met_de_parel.jpg", "pesada3.AxelTomiMandan", quant3)
+
+# ╔═╡ 0fb815c6-e782-45fd-bd02-1e893d39dd63
+decodificacion("pesada3.AxelTomiMandan", quant3)
+
+# ╔═╡ e733f2c6-05b7-46b9-95d6-0b482ad7d27b
+recomposicionRGB(descompuesta)
+
+# ╔═╡ f3310fac-ed65-4e75-8819-ad5f10a5f0c0
+md"""
+Original JPG: 6,2MB  
+
+Pesada3(la del TP): 3,6MB
+
+Son muy parecidas pero una pesa la mitad!
+"""
+
+# ╔═╡ 8b456277-1c55-4b2e-b3d8-222e9e03f954
+codificacion("flor.bmp", "florComp3.AxelTomiMandan", quant3)
+
+# ╔═╡ 48354c69-37d6-416a-997e-ae59b7ef74d4
+codificacion("paisaje.bmp", "paisaje3.AxelTomiMandan", quant3)
+
+# ╔═╡ d022da78-87d3-4dfe-beb6-19a7c37395b3
+codificacion("paisajePeso.bmp", "paisajePeso3.AxelTomiMandan", quant3)
+
+# ╔═╡ f6dceb5c-2c40-472b-a390-a4c66a56d70c
+decodificacion("florComp3.AxelTomiMandan", quant3)
+
+# ╔═╡ 9e2183ec-f5a4-4365-b242-0edba3f30398
+decodificacion("paisaje3.AxelTomiMandan", quant3)
+
+# ╔═╡ 5f10d16f-af26-40f8-b4f6-3c1a219e47e0
+decodificacion("paisajePeso3.AxelTomiMandan", quant3)
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 Images = "916415d5-f1e6-5110-898d-aaa5f9f070e0"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [compat]
@@ -1510,7 +1763,6 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═9e6e8d4e-684e-4e75-beb4-15cf55a889a0
 # ╠═5ff81afa-eea2-4ccd-a5f6-5a81025aac46
 # ╟─4b2191fb-f952-423f-8321-201e1c35ef6e
-# ╠═554b169a-d7f9-4835-901d-0715facb38a0
 # ╟─f96dbd2e-de85-4855-9cfd-9f74263190e8
 # ╠═71bceaf2-f149-49b0-bc9f-9a31db44219f
 # ╟─7129eaff-a7d2-46c7-9bc7-ca12bfe733c8
@@ -1568,7 +1820,7 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═5af7c99f-906d-4642-b060-a53856bdb5cb
 # ╠═68a5bf30-ca28-4ca3-ba60-6b031124f0fa
 # ╠═d2d7fb19-f3c6-4c82-b662-a32b5d9fe11d
-# ╠═960e9ddf-9ca6-4bdf-8356-23bb05217b23
+# ╟─960e9ddf-9ca6-4bdf-8356-23bb05217b23
 # ╠═a716593f-9050-47ce-a8c7-93c82b5e6dd4
 # ╠═f270e723-ead0-4d04-8455-5cd2bf17b9c3
 # ╠═29d2d8f7-3b4f-4817-9cb6-95186a4da0da
@@ -1577,22 +1829,56 @@ uuid = "3f19e933-33d8-53b3-aaab-bd5110c3b7a0"
 # ╠═5e013596-c983-4486-8853-7607031be4a3
 # ╟─8008b883-3adc-480f-8aff-620382e49603
 # ╠═f1465ba4-4ca8-4d41-a678-cf9f593a6b57
+# ╠═84ddff11-ae06-4bcb-82ab-06e54cbf241d
+# ╠═18014b47-f08b-4aed-abb8-d0a7b71f9614
 # ╟─511170ac-e9fa-4136-b5f8-6c08126ad297
 # ╠═f03504e3-9862-4a2e-8525-9b2df88dfcd3
 # ╠═8554d36c-5975-42cb-b8cb-56741097d071
 # ╟─66e99f7f-3d1b-4fdc-ac24-4d30c535d654
 # ╟─2191cb16-01a7-4f7f-9019-413dc5d52cdc
+# ╠═1fe0ba5e-84da-4b57-8aa6-0d946b1b78ee
 # ╠═6ac98964-92e0-4cf3-a004-51194f17ee73
-# ╠═2e59ff10-e8a5-489a-8a36-8da42d837630
+# ╠═86ad4a83-44c1-4ce6-a820-e858d9ef5724
+# ╠═75801208-efa8-4a3e-b70b-4945727c0c48
+# ╠═998fcd81-b3b7-41a5-9130-9614962c4dae
 # ╟─753f9f6b-7244-418c-9df7-3c33a7194270
+# ╟─c1e49703-7873-4955-8bc5-35cda63c2166
 # ╟─2758a0f4-56be-428d-8997-b4c35ff73e25
 # ╟─b25eb87f-09bb-44af-81c5-9f2e5905e59f
 # ╠═ef5d2e2c-4677-443d-8f96-a7cbea0795be
+# ╠═897fd073-5eea-4f2c-850d-7073a7ed0b2e
 # ╠═04667800-3b83-4994-9cd4-74e42b724373
 # ╟─57f662e0-cbcb-4042-b2c7-36db10246610
 # ╟─63ca201c-3de7-490b-a243-20bfbaaea5ed
+# ╠═1d8e5cb3-60f2-4292-89c1-550c45c48a3c
+# ╠═f4d4135a-c22a-4571-b5bc-bb4c5d0ff03d
+# ╠═78e97c71-62c2-49fb-a318-12e760eb1e4c
 # ╠═1954d1af-732c-4da5-b43b-1105f35dc814
 # ╠═00f33b38-5ad5-4c37-8a22-0501298ff7ae
+# ╠═badf936c-98d2-4e72-a138-260e081fb190
+# ╠═fd599b11-dda7-4691-aa94-493b68933685
 # ╟─53918244-e558-49ac-9456-ed7f0d7782a1
+# ╠═a029a74d-2da9-4d62-8a60-c7cef563d664
+# ╠═8daf55c2-2d80-426b-9b1e-872daf9e61d4
+# ╠═88d67866-9672-496f-90ec-269e5f7ace26
+# ╠═5fda9ff0-ccf3-470a-9770-c4054bffefb0
+# ╠═5cded9ce-5bcd-4e4d-bc01-d6856d32024d
+# ╠═a8319bc2-5175-438a-aa03-2a95b4be3ed6
+# ╠═1d818865-534c-4610-9e08-81cf13ef8183
+# ╠═871968d6-22bd-45ba-8340-eab8deda0696
+# ╠═04338b9f-a5c5-476e-aa6a-450c346b22f4
+# ╠═39437ee5-3aa7-453a-b45b-6a2a440d4c1f
+# ╠═2efbc23c-bef9-4dd6-89f3-7aaec7167139
+# ╠═cf956f77-9292-4c91-940a-21a502c46dc3
+# ╠═d4a5ecef-601b-4e37-a2cf-b70d0a056f9e
+# ╠═0fb815c6-e782-45fd-bd02-1e893d39dd63
+# ╠═e733f2c6-05b7-46b9-95d6-0b482ad7d27b
+# ╟─f3310fac-ed65-4e75-8819-ad5f10a5f0c0
+# ╠═8b456277-1c55-4b2e-b3d8-222e9e03f954
+# ╠═48354c69-37d6-416a-997e-ae59b7ef74d4
+# ╠═d022da78-87d3-4dfe-beb6-19a7c37395b3
+# ╠═f6dceb5c-2c40-472b-a390-a4c66a56d70c
+# ╠═9e2183ec-f5a4-4365-b242-0edba3f30398
+# ╠═5f10d16f-af26-40f8-b4f6-3c1a219e47e0
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
